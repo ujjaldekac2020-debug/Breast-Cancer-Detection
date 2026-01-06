@@ -1,0 +1,48 @@
+import pandas as pd
+import joblib
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+
+def generate_model_files():
+    """
+    Trains a Random Forest model on the Wisconsin Breast Cancer dataset
+    using only the 5 specific features used in the WEB.HTML frontend.
+    """
+    # 1. Load the dataset
+    data = load_breast_cancer()
+    
+    # Define the 5 features from your WEB.HTML:
+    # 0: mean radius, 1: mean texture, 2: mean perimeter, 3: mean area, 4: mean smoothness
+    feature_indices = [0, 1, 2, 3, 4]
+    X = data.data[:, feature_indices]
+    y = data.target
+    
+    # 2. Split data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # 3. Initialize and fit the Scaler
+    # This is critical because 'Area' (~1000) and 'Smoothness' (~0.1) have different scales
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    
+    # 4. Initialize and train the Classifier
+    # RandomForest is robust for medical tabular data
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train_scaled, y_train)
+    
+    # 5. Save the trained model and scaler to files
+    joblib.dump(model, 'cancer_model.joblib')
+    joblib.dump(scaler, 'scaler.joblib')
+    
+    # 6. Verify accuracy on test set
+    X_test_scaled = scaler.transform(X_test)
+    accuracy = model.score(X_test_scaled, y_test)
+    
+    print("--- Training Complete ---")
+    print(f"Model Accuracy: {accuracy * 100:.2f}%")
+    print("Files created: 'cancer_model.joblib' and 'scaler.joblib'")
+
+if __name__ == "__main__":
+    generate_model_files()
