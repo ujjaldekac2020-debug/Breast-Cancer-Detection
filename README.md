@@ -51,7 +51,9 @@ The model is trained on the **UCI Breast Cancer Wisconsin (Diagnostic) Dataset**
 ## ■ Steps to Run the Project
 1. **Clone the repository:**
    ```bash
-   <img width="1470" height="778" alt="Screenshot 2026-01-08 at 8 37 01 PM" src="https://github.com/user-attachments/assets/fa711520-1598-43bd-963a-686b2514bf8c" />
+   
+<img width="1470" height="778" alt="Screenshot 2026-01-08 at 8 37 01 PM" src="https://github.com/user-attachments/assets/7086ea3f-e33a-4ebf-8d0a-f80113a4c10b" />
+
 <img width="1470" height="778" alt="Screenshot 2026-01-08 at 8 37 47 PM" src="https://github.com/user-attachments/assets/4064a14a-540d-4484-a202-4c2f4cc44539" />
 
    https://ujjaldekac2020-debug.github.io/BCD/
