@@ -1,48 +1,91 @@
 import pandas as pd
-import joblib
-from sklearn.datasets import load_breast_cancer
+import pickle
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, classification_report
 
-def generate_model_files():
-    """
-    Trains a Random Forest model on the Wisconsin Breast Cancer dataset
-    using only the 5 specific features used in the WEB.HTML frontend.
-    """
-    # 1. Load the dataset
-    data = load_breast_cancer()
-    
-    # Define the 5 features from your WEB.HTML:
-    # 0: mean radius, 1: mean texture, 2: mean perimeter, 3: mean area, 4: mean smoothness
-    feature_indices = [0, 1, 2, 3, 4]
-    X = data.data[:, feature_indices]
-    y = data.target
-    
-    # 2. Split data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # 3. Initialize and fit the Scaler
-    # This is critical because 'Area' (~1000) and 'Smoothness' (~0.1) have different scales
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    
-    # 4. Initialize and train the Classifier
-    # RandomForest is robust for medical tabular data
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_train_scaled, y_train)
-    
-    # 5. Save the trained model and scaler to files
-    joblib.dump(model, 'cancer_model.joblib')
-    joblib.dump(scaler, 'scaler.joblib')
-    
-    # 6. Verify accuracy on test set
-    X_test_scaled = scaler.transform(X_test)
-    accuracy = model.score(X_test_scaled, y_test)
-    
-    print("--- Training Complete ---")
-    print(f"Model Accuracy: {accuracy * 100:.2f}%")
-    print("Files created: 'cancer_model.joblib' and 'scaler.joblib'")
+# ==========================================
+# 1. LOAD DATASET
+# ==========================================
+# We use the raw GitHub URL to access the CSV file directly
+data_url = "https://raw.githubusercontent.com/ujjaldekac2020-debug/Breast-Cancer-Detection/main/Dataset/data.csv"
+print(f"Downloading data from: {data_url}...")
 
-if __name__ == "__main__":
-    generate_model_files()
+try:
+    df = pd.read_csv(data_url)
+    print("Data loaded successfully!")
+except Exception as e:
+    print(f"Error loading data: {e}")
+    exit()
+
+# ==========================================
+# 2. DATA CLEANING & PREPROCESSING
+# ==========================================
+# Drop the 'id' column as it doesn't help with prediction
+if 'id' in df.columns:
+    df = df.drop(['id'], axis=1)
+
+# Drop 'Unnamed: 32' (an empty column often found in this dataset)
+if 'Unnamed: 32' in df.columns:
+    df = df.drop(['Unnamed: 32'], axis=1)
+
+# Convert Diagnosis text to numbers: Malignant (M) -> 1, Benign (B) -> 0
+df['diagnosis'] = df['diagnosis'].map({'M': 1, 'B': 0})
+
+# Select features
+# Note: For a web project, we often use the first 10 'mean' features because
+# asking a user to input 30 values is too difficult. 
+# If you want ALL 30 features, remove the filtering below.
+feature_cols = [
+    'radius_mean', 'texture_mean', 'perimeter_mean', 'area_mean', 
+    'smoothness_mean', 'compactness_mean', 'concavity_mean', 
+    'concave points_mean', 'symmetry_mean', 'fractal_dimension_mean'
+]
+
+# Check if these columns exist, otherwise use all numeric columns
+if set(feature_cols).issubset(df.columns):
+    X = df[feature_cols]
+    print(f"Training on {len(feature_cols)} specific features (Best for Web Apps).")
+else:
+    X = df.drop('diagnosis', axis=1)
+    print("Training on ALL available features.")
+
+y = df['diagnosis']
+
+# ==========================================
+# 3. SPLIT & SCALE
+# ==========================================
+# Split data: 80% for training, 20% for testing
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale data: This ensures values like 'Area' (e.g., 1000) don't dominate 'Smoothness' (e.g., 0.1)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# ==========================================
+# 4. TRAIN MODEL
+# ==========================================
+print("Training Random Forest Model...")
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train_scaled, y_train)
+
+# ==========================================
+# 5. EVALUATE
+# ==========================================
+y_pred = model.predict(X_test_scaled)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"\nModel Accuracy: {accuracy * 100:.2f}%")
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# ==========================================
+# 6. SAVE PROJECT FILES
+# ==========================================
+pickle.dump(model, open('model.pkl', 'wb'))
+pickle.dump(scaler, open('scaler.pkl', 'wb'))
+
+print("\nSUCCESS: 'model.pkl' and 'scaler.pkl' have been saved.")
+print("You can now load these files in your main project.")
